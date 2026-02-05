@@ -81,3 +81,37 @@ class Auction(models.Model):
     def total_bids(self):
         """Get total number of bids"""
         return self.bids.count()
+    
+class Bid(models.Model):
+    """
+    Bid Model
+    """
+    
+    auction = models.ForeignKey(
+        Auction,
+        on_delete=models.CASCADE,
+        related_name='bids'
+    )
+    bidder = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='bids'
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)]
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'bids'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['auction', '-amount']),
+            models.Index(fields=['bidder']),
+        ]
+    
+    def __str__(self):
+        return f"{self.bidder.username} bid ${self.amount} on {self.auction.title}"
