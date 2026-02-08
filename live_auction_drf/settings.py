@@ -49,13 +49,14 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',  # JWT authentication
-    'channels',  # WebSocket support
+    'channels',
     'drf_spectacular',  # API documentation
     'corsheaders',
 
     'apps.users',
     'apps.auctions',
     'apps.bidding',
+    'apps.utils',
 ]
 
 MIDDLEWARE = [
