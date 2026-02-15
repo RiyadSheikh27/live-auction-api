@@ -4,11 +4,11 @@ from rest_framework import status
 
 class APIResponse:
     @staticmethod
-    def success_response(data=None, messgae="Request Successfull", status_code=status.HTTP_200_OK):
+    def success_response(data=None, message="Request Successfull", status_code=status.HTTP_200_OK):
         return Response(
             {
                 "success": True,
-                "message": messgae,
+                "message": message,
                 "data": data,
                 "errors": None
             }, status=status_code
