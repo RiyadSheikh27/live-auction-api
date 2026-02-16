@@ -142,6 +142,6 @@ class AuctionCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Create auction with current_price set to starting_price"""
-        validated_data['current_price'] = validated_data['starting_price']
+        validated_data['current_price'] = validated_data.get('starting_price')
         validated_data['owner'] = self.context['request'].user
         return super().create(validated_data)
