@@ -5,4 +5,5 @@ app_name = 'users'
 
 urlpatterns = [
     path('', views.AuctionListCreateAPIView.as_view(), name='auction_list_create'),
+    path('<int:pk>/', views.AuctionDetailAPIView.as_view(), name='auction_list_create'),
 ]

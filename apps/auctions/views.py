@@ -3,7 +3,8 @@ from rest_framework.views import APIView
 from rest_framework import status, permissions
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
+from apps.utils.permissions import IsOwnerOrReadOnly
+from django.shortcuts import get_object_or_404
 
 from django.utils import timezone
 from django.db.models import Q
@@ -133,6 +134,62 @@ class AuctionListCreateAPIView(APIResponse, APIView):
                 errors=str(e),
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class AuctionDetailAPIView(APIResponse, APIView):
+    """
+    GET /api/auctions/{id}/ - Retrieve auction details
+    PUT /api/auctions/{id}/ - Update auction (owner only)
+    PATCH /api/auctions/{id}/ - Partial update (owner only)
+    DELETE /api/auctions/{id}/ - Cancel auction (owner only, no bids)
+    """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]   
+    
+    def get_object(self, pk):
+        """Get auction object or return 404"""
+        auction = get_object_or_404(Auction.objects.select_related('owner', 'winner'), pk=pk)
+
+        self.check_object_permissions(self.request, auction)
+        return auction
+    
+    def get(self, request, pk):
+        """Retrieve detailed auction information"""
+        try:
+            auction = self.get_object(pk)
+            serializer = AuctionDetailSerializer(auction)
+    
+            return self.success_response(
+                message='Retrived data successfully',
+                data = serializer.data,
+            )
+        except ValidationError as e:
+            return self.error_response(
+                message="Validation Error",
+                errors=e.detail,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return self.error_response(
+                message="Internal Server Error",
+                errors=e.detail,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )    
+        
+    def put(self, request, pk):
+         """
+        Update auction (full update)
+        Only owner can update
+        """
+        try:
+            auction = self.get_object(pk)
+            serializer = AuctionCreateSerializer(
+                auction,
+                data=request.data,
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                serializer.save()
+                response_serializer = AuctionDetailSerializer(auction)
 
         
         
