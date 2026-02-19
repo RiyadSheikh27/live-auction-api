@@ -59,19 +59,19 @@ class AuctionListCreateAPIView(APIResponse, APIView):
                 serializer = AuctionListSerializer(page, many=True)
 
                 now = timezone.now()
-                
+
                 meta = {
                     "count": paginator.page.paginator.count,
                     "next": paginator.get_next_link(),
                     "previous": paginator.get_previous_link(),
                 }
-                
+
                 return self.success_response(
                     message="Retrieved auction list successfully",
-                    data=serializer.data,     
+                    data=serializer.data,
                     meta=meta,
                 )
-            
+
             # # No pagination case
             # serializer = AuctionListSerializer(queryset, many=True)
             # return self.success_response(
@@ -95,7 +95,7 @@ class AuctionListCreateAPIView(APIResponse, APIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        
+
     def post(self, request):
         """Create a New Auction"""
         try:
@@ -103,31 +103,31 @@ class AuctionListCreateAPIView(APIResponse, APIView):
                 data=request.data,
                 context={'request': request}
             )
-    
+
             if serializer.is_valid():
                 auction = serializer.save()
-    
+
                 response_serializer = AuctionDetailSerializer(auction)
-    
+
                 return self.success_response(
                     message="Auction uploaded successfully",
                     data=response_serializer.data,
                     status_code=status.HTTP_201_CREATED
                 )
-    
+
             return self.error_response(
                 message="Validation Error",
                 errors=serializer.errors,
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-    
+
         except ValidationError as e:
             return self.error_response(
                 message="Validation Error",
                 errors=e.detail,
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-    
+
         except Exception as e:
             return self.error_response(
                 message="internal Server Error",
@@ -142,21 +142,21 @@ class AuctionDetailAPIView(APIResponse, APIView):
     PATCH /api/auctions/{id}/ - Partial update (owner only)
     DELETE /api/auctions/{id}/ - Cancel auction (owner only, no bids)
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]   
-    
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
     def get_object(self, pk):
         """Get auction object or return 404"""
         auction = get_object_or_404(Auction.objects.select_related('owner', 'winner'), pk=pk)
 
         self.check_object_permissions(self.request, auction)
         return auction
-    
+
     def get(self, request, pk):
         """Retrieve detailed auction information"""
         try:
             auction = self.get_object(pk)
             serializer = AuctionDetailSerializer(auction)
-    
+
             return self.success_response(
                 message='Retrived data successfully',
                 data = serializer.data,
@@ -172,25 +172,25 @@ class AuctionDetailAPIView(APIResponse, APIView):
                 message="Internal Server Error",
                 errors=e.detail,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )    
-        
-    def put(self, request, pk):
-         """
-        Update auction (full update)
-        Only owner can update
-        """
-        try:
-            auction = self.get_object(pk)
-            serializer = AuctionCreateSerializer(
-                auction,
-                data=request.data,
-                context={'request': request}
             )
-            
-            if serializer.is_valid():
-                serializer.save()
-                response_serializer = AuctionDetailSerializer(auction)
 
-        
-        
+    # def put(self, request, pk):
+    #      """
+    #     Update auction (full update)
+    #     Only owner can update
+    #     """
+    #     try:
+    #         auction = self.get_object(pk)
+    #         serializer = AuctionCreateSerializer(
+    #             auction,
+    #             data=request.data,
+    #             context={'request': request}
+    #         )
+
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #             response_serializer = AuctionDetailSerializer(auction)
+
+
+
 
