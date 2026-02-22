@@ -98,11 +98,14 @@ WSGI_APPLICATION = 'live_auction_drf.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mydb',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',           # কন্টেইনারের নাম
+        'PORT': '5432',
     }
 }
-
 AUTH_USER_MODEL = 'users.User'
 
 # Password validation
