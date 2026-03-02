@@ -61,4 +61,110 @@ def close_auction(auction_id):
     Args:
         auction_id: ID of the auction to close
     """
-    pass
+    try:
+        auction = Auction.objects.get(id=auction_id)
+
+        # Check if auction is still active
+        if auction.status != 'active':
+            logger.warning(f"Auction {auction_id} is already closed.")
+            return f"Auction {auction_id} is already closed."
+        
+        # Get highest bid
+        highest_bid = auction.bids.order_by('-amount').first()
+
+        # Determine winner
+        if highest_bid:
+            # Check if reserve price is met (if set)
+            if auction.reserve_price:
+                if highest_bid.amount >= auction.reserve_price:
+                    auction.winner = highest_bid.bidder
+                    auction.status = 'closed'
+                    logger.info(
+                        f"Auction {auction_id} closed. Winner: {highest_bid.bidder.username}"
+                    )
+                else:
+                    # Reserve price not met
+                    auction.status = 'closed'
+                    logger.info(
+                        f"Auction {auction_id} closed. Reserve price not met."
+                    )
+            else:
+                # No reserve price, highest bidder wins
+                auction.winner = highest_bid.bidder
+                auction.status = 'closed'
+                logger.info(
+                    f"Auction {auction_id} closed. Winner: {highest_bid.bidder.username}"
+                )
+        else:
+            # No bids placed, just close the auction
+            auction.status = 'closed'
+            logger.info(f"Auction {auction_id} closed with no bids.")
+
+        auction.save()
+
+        notify_auction_participants.delay(auction_id)
+
+        return f"Auction {auction_id} closed successfully."
+    
+    except Auction.DoesNotExist:
+        logger.error(f"Auction with ID {auction_id} does not exist.")
+        return f"Auction with ID {auction_id} does not exist."
+    except Exception as e:
+        logger.error(f"Error closing auction {auction_id}: {str(e)}")
+        raise
+
+@shared_task
+def notify_auction_participants(auction_id):
+    """
+    Send notifications to auction participants
+    
+    In a real app, this would send emails or push notifications
+    For this demo, we'll just log the notifications
+    
+    Args:
+        auction_id: ID of the auction
+    """
+    from .models import Auction
+    
+    try:
+        auction = Auction.objects.get(id=auction_id)
+        
+        # Get all unique bidders
+        bidders = auction.bids.values_list('bidder__email', flat=True).distinct()
+        
+        if auction.winner:
+            # Notify winner
+            logger.info(
+                f"📧 NOTIFICATION: {auction.winner.email} - "
+                f"Congratulations! You won '{auction.title}' for ${auction.current_price}"
+            )
+            
+            # Notify other bidders
+            for bidder_email in bidders:
+                if bidder_email != auction.winner.email:
+                    logger.info(
+                        f"📧 NOTIFICATION: {bidder_email} - "
+                        f"Auction '{auction.title}' has ended. You were outbid."
+                    )
+        else:
+            # No winner
+            logger.info(
+                f"📧 NOTIFICATION: {auction.owner.email} - "
+                f"Your auction '{auction.title}' ended with no winner."
+            )
+        
+        # Notify owner
+        if auction.winner and auction.owner.email != auction.winner.email:
+            logger.info(
+                f"📧 NOTIFICATION: {auction.owner.email} - "
+                f"Your auction '{auction.title}' sold for ${auction.current_price}"
+            )
+        
+        return f"Notifications sent for auction {auction_id}"
+        
+    except Auction.DoesNotExist:
+        logger.error(f"Auction {auction_id} not found")
+        return f"Auction {auction_id} not found"
+    except Exception as e:
+        logger.error(f"Error notifying participants for auction {auction_id}: {str(e)}")
+        raise
